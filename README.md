@@ -84,6 +84,7 @@ Open http://localhost:5173. The dev server proxies `/api/*` to the backend on po
 | GET | `/rooms` | |
 | GET | `/rooms/{id}` | |
 | POST | `/rooms` | `{name, capacity}` |
+| POST | `/rooms/{id}/suggest` | `{requester_id, attendee_ids, duration_minutes, date}`; returns the first three valid slots |
 | GET | `/users` | |
 | GET | `/bookings?date=YYYY-MM-DD&room_id=` | Both filters optional |
 | POST | `/bookings` | `{room_id, creator_id, title, attendee_ids, start, end}`; returns `409` if the room is taken |

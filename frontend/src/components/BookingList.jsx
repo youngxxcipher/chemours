@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getBookings } from "../api.js";
 import { formatTime } from "../dates.js";
 
-export default function BookingList({ date }) {
+export default function BookingList({ date, refreshKey }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,7 +14,7 @@ export default function BookingList({ date }) {
       .then(setBookings)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [date]);
+  }, [date, refreshKey]);
 
   return (
     <section className="card">

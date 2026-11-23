@@ -1,7 +1,9 @@
 from datetime import date, datetime, time, timedelta
+from time import monotonic, sleep
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db
@@ -33,7 +35,27 @@ def list_bookings(
 
 @router.post("", response_model=BookingOut, status_code=201)
 def create_booking(payload: BookingIn, db: Session = Depends(get_db)):
-    room = db.get(Room, payload.room_id)
+    # PostgreSQL serializes attempts for the same room with a row lock. SQLite
+    # does not implement row locks, so take its write lock before checking
+    # availability. In both cases, the check and insert share one transaction.
+    if db.bind.dialect.name == "sqlite":
+        lock_deadline = monotonic() + 2
+        while True:
+            try:
+                db.execute(text("BEGIN IMMEDIATE"))
+                break
+            except OperationalError as error:
+                db.rollback()
+                if "locked" not in str(error).lower():
+                    raise
+                if monotonic() >= lock_deadline:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Room is currently being booked; please retry",
+                    )
+                sleep(0.01)
+
+    room = db.scalar(select(Room).where(Room.id == payload.room_id).with_for_update())
     if room is None:
         raise HTTPException(status_code=404, detail="Room not found")
     if db.get(User, payload.creator_id) is None:

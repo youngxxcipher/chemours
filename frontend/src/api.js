@@ -5,7 +5,9 @@ async function request(path, options) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const detail = typeof body.detail === "string" ? body.detail : null;
-    throw new Error(detail || `Request failed (${res.status})`);
+    const error = new Error(detail || `Request failed (${res.status})`);
+    error.status = res.status;
+    throw error;
   }
   return res.json();
 }
@@ -21,4 +23,11 @@ export const createBooking = (booking) =>
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(booking),
+  });
+
+export const suggestSlots = (roomId, payload) =>
+  request(`/rooms/${roomId}/suggest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
